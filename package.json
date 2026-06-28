@@ -1,0 +1,22 @@
+{
+  "name": "cleanbot",
+  "version": "1.0.0",
+  "description": "Bot de empresa RP para gestión de pagos, servicios y empleados",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "rp",
+    "empresa",
+    "payments"
+  ],
+  "author": "Clean Services",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5"
+  }
+}
