@@ -52,6 +52,50 @@ const activities = [
 
 let lastSent = "";
 
+// ================= NORMAS SYSTEM =================
+
+const rulesEmbed = new EmbedBuilder()
+  .setTitle("📜┃NORMATIVA OFICIAL — PRESTIGE CLEAN")
+  .setColor("Grey")
+  .setDescription(
+`> **Bienvenido a la empresa de limpieza.**
+> Nuestro objetivo es mantener un servicio profesional, organizado y de calidad.
+> El cumplimiento de estas normas es obligatorio.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏢 **Normas generales**
+• Respeto obligatorio
+• Sin toxicidad ni conflictos
+• Uso correcto de canales
+
+👷 **Servicio**
+• Completar tareas asignadas
+• Avisar si no puedes asistir
+• Mantener actitud profesional
+
+💰 **Pagos**
+• Gestionados solo por CEO
+• Sin reclamaciones constantes
+
+🚫 **Prohibiciones**
+• Spam / filtraciones / suplantación
+• Mal uso de recursos
+
+⚠️ **Sanciones**
+Advertencia → Suspensión → Expulsión
+
+━━━━━━━━━━━━━━━━━━━━━━`
+  );
+
+const rulesButton = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId("accept_rules")
+    .setLabel("Aceptar normas")
+    .setStyle(ButtonStyle.Success)
+    .setEmoji("✅")
+);
+
 // ---------------- COMANDOS ----------------
 
 const commands = [
@@ -86,7 +130,11 @@ const commands = [
     .addStringOption(o =>
       o.setName("mensaje")
         .setDescription("Mensaje")
-        .setRequired(true))
+        .setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName("normas")
+    .setDescription("Mostrar normas del servidor")
 
 ].map(c => c.toJSON());
 
@@ -179,6 +227,15 @@ client.once("ready", () => {
 
 client.on("interactionCreate", async interaction => {
 
+  // ================= NORMAS COMMAND =================
+  if (interaction.isChatInputCommand() && interaction.commandName === "normas") {
+
+    return interaction.reply({
+      embeds: [rulesEmbed],
+      components: [rulesButton]
+    });
+  }
+
   // ================= PAGO =================
   if (interaction.isChatInputCommand() && interaction.commandName === "pago") {
 
@@ -229,6 +286,36 @@ client.on("interactionCreate", async interaction => {
 
     try {
 
+      // ================= ACEPTAR NORMAS =================
+      if (interaction.customId === "accept_rules") {
+
+        const role = interaction.guild.roles.cache.find(
+          r => r.name === "Ciudadano"
+        );
+
+        if (!role) {
+          return interaction.reply({
+            content: "❌ Rol 'Ciudadano' no encontrado",
+            ephemeral: true
+          });
+        }
+
+        if (interaction.member.roles.cache.has(role.id)) {
+          return interaction.reply({
+            content: "⚠️ Ya has aceptado las normas",
+            ephemeral: true
+          });
+        }
+
+        await interaction.member.roles.add(role);
+
+        return interaction.reply({
+          content: "✅ Normas aceptadas correctamente. Bienvenido a Prestige Clean.",
+          ephemeral: true
+        });
+      }
+
+      // ================= PAGOS BOTONES =================
       let estado = "🟡 Pendiente";
 
       if (interaction.customId === "pagado") estado = "🟢 Pagado";
