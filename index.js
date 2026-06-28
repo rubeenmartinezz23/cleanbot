@@ -6,17 +6,24 @@ const {
   SlashCommandBuilder,
   REST,
   Routes,
-  EmbedBuilder
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } = require("discord.js");
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
+// 🔧 seguridad anti-crash
+client.on("error", console.error);
+process.on("unhandledRejection", console.error);
+
 // 📢 CANAL ACTIVIDADES
 const ACTIVITIES_CHANNEL_ID = process.env.ACTIVITIES_CHANNEL_ID;
 
-// 🧠 ACTIVIDADES (HORA ESPAÑA)
+// 🧠 ACTIVIDADES
 const activities = [
   { hour: 3, minute: 0, name: "Asesoramiento Empresarial" },
   { hour: 12, minute: 0, name: "Asesoramiento Empresarial" },
@@ -43,7 +50,6 @@ const activities = [
   { hour: 21, minute: 0, name: "Limpieza de rascacielos" }
 ];
 
-// 🧠 ANTI DUPLICADOS
 let lastSent = "";
 
 // ---------------- COMANDOS ----------------
@@ -65,24 +71,22 @@ const commands = [
       o.setName("cantidad")
         .setDescription("Cantidad")
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName("contratar")
     .setDescription("Contratar empleado")
     .addUserOption(o =>
       o.setName("usuario")
         .setDescription("Usuario")
-        .setRequired(true)
-    ),
+        .setRequired(true)),
 
   new SlashCommandBuilder()
     .setName("anuncio")
-    .setDescription("Enviar anuncio oficial")
+    .setDescription("Enviar anuncio")
     .addStringOption(o =>
       o.setName("mensaje")
-        .setDescription("Mensaje del anuncio")
-        .setRequired(true)
-    )
+        .setDescription("Mensaje")
+        .setRequired(true))
 
 ].map(c => c.toJSON());
 
@@ -105,7 +109,7 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
   }
 })();
 
-// ---------------- READY + SISTEMA ACTIVIDADES ----------------
+// ---------------- READY + ACTIVIDADES ----------------
 
 client.once("ready", () => {
   console.log(`🧹 Bot online como ${client.user.tag}`);
@@ -114,7 +118,6 @@ client.once("ready", () => {
 
     const now = new Date();
 
-    // 🇪🇸 HORA ESPAÑA
     const madridHours = parseInt(
       now.toLocaleString("en-US", {
         timeZone: "Europe/Madrid",
@@ -141,7 +144,6 @@ client.once("ready", () => {
         const channel = client.channels.cache.get(ACTIVITIES_CHANNEL_ID);
         if (!channel) return;
 
-        // 🕒 HORA HUB (España -2h)
         let hubHour = act.hour - 2;
         if (hubHour < 0) hubHour += 24;
 
@@ -151,19 +153,18 @@ client.once("ready", () => {
           .setDescription(
 `━━━━━━━━━━━━━━━━━━━━━━
 
-🧹 **Actividad:** ${act.name}
+🧹 Actividad: ${act.name}
 
-🕒 **Hora HUB:** ${String(hubHour).padStart(2, "0")}:${String(act.minute).padStart(2, "0")}
+🕒 Hora HUB: ${String(hubHour).padStart(2, "0")}:${String(act.minute).padStart(2, "0")}
 
-👷 Todo el personal disponible debe acudir inmediatamente.
+👷 Todos los empleados deben asistir
 
 ━━━━━━━━━━━━━━━━━━━━━━`
           )
-          .setFooter({ text: "Sistema automático empresa RP" })
           .setTimestamp();
 
         channel.send({
-          content: "@everyone 📢 Nueva actividad disponible",
+          content: "@everyone 📢 Actividad disponible",
           embeds: [embed]
         });
 
@@ -178,29 +179,103 @@ client.once("ready", () => {
 
 client.on("interactionCreate", async interaction => {
 
+  // ================= PAGO =================
+  if (interaction.isChatInputCommand() && interaction.commandName === "pago") {
+
+    try {
+
+      const empleado = interaction.options.getUser("empleado");
+      const servicio = interaction.options.getString("servicio");
+      const cantidad = interaction.options.getString("cantidad");
+
+      const embed = new EmbedBuilder()
+        .setTitle("💰 NUEVO PAGO")
+        .addFields(
+          { name: "Empleado", value: `${empleado}`, inline: true },
+          { name: "Servicio", value: servicio, inline: true },
+          { name: "Cantidad", value: cantidad, inline: true },
+          { name: "Estado", value: "🟡 Pendiente" }
+        )
+        .setColor("Yellow");
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("pagado")
+          .setLabel("Pagado")
+          .setStyle(ButtonStyle.Success),
+
+        new ButtonBuilder()
+          .setCustomId("rechazado")
+          .setLabel("Rechazado")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      return interaction.reply({
+        embeds: [embed],
+        components: [row]
+      });
+
+    } catch (err) {
+      console.log(err);
+      return interaction.reply({
+        content: "❌ Error en pago",
+        ephemeral: true
+      });
+    }
+  }
+
+  // ================= BOTONES =================
+  if (interaction.isButton()) {
+
+    try {
+
+      let estado = "🟡 Pendiente";
+
+      if (interaction.customId === "pagado") estado = "🟢 Pagado";
+      if (interaction.customId === "rechazado") estado = "🔴 Rechazado";
+
+      const embed = EmbedBuilder.from(interaction.message.embeds[0]);
+
+      embed.data.fields = embed.data.fields.map(f => {
+        if (f.name === "Estado") {
+          return { name: "Estado", value: estado };
+        }
+        return f;
+      });
+
+      return interaction.update({ embeds: [embed] });
+
+    } catch (err) {
+      console.log(err);
+      return interaction.reply({
+        content: "❌ Error en botón",
+        ephemeral: true
+      });
+    }
+  }
+
   // ================= CONTRATAR =================
   if (interaction.isChatInputCommand() && interaction.commandName === "contratar") {
 
     try {
-
-      await interaction.deferReply();
 
       const usuario = interaction.options.getUser("usuario");
       const member = await interaction.guild.members.fetch(usuario.id);
 
       const role = interaction.guild.roles.cache.find(r => r.name === "🆕 RECLUTA");
 
-      if (!role) {
-        return interaction.editReply("❌ No existe el rol 🆕 RECLUTA");
-      }
+      if (!role) return interaction.reply("❌ Rol no encontrado");
 
       await member.roles.add(role);
 
-      return interaction.editReply(`🧑‍💼 ${usuario} ha sido contratado como 🆕 RECLUTA.`);
+      return interaction.reply(`🧑‍💼 ${usuario} contratado`);
 
     } catch (err) {
       console.log(err);
-      return interaction.reply("❌ Error al contratar usuario.");
+      return interaction.reply({
+        content: "❌ Error contratar",
+        ephemeral: true
+      });
     }
   }
 
@@ -210,10 +285,9 @@ client.on("interactionCreate", async interaction => {
     const mensaje = interaction.options.getString("mensaje");
 
     const embed = new EmbedBuilder()
-      .setTitle("📢 ANUNCIO OFICIAL")
-      .setColor("Blue")
+      .setTitle("📢 ANUNCIO")
       .setDescription(mensaje)
-      .setTimestamp();
+      .setColor("Blue");
 
     return interaction.reply({ embeds: [embed] });
   }
