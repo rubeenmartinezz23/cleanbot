@@ -167,27 +167,37 @@ const commands = [
     .setName("pago")
     .setDescription("Registrar pago")
     .addUserOption(o =>
-      o.setName("empleado").setRequired(true))
+      o.setName("empleado")
+        .setDescription("Empleado a pagar")
+        .setRequired(true))
     .addStringOption(o =>
-      o.setName("servicio").setRequired(true))
+      o.setName("servicio")
+        .setDescription("Servicio realizado")
+        .setRequired(true))
     .addStringOption(o =>
-      o.setName("cantidad").setRequired(true)),
+      o.setName("cantidad")
+        .setDescription("Cantidad a pagar")
+        .setRequired(true)),
 
   new SlashCommandBuilder()
     .setName("contratar")
     .setDescription("Contratar empleado")
     .addUserOption(o =>
-      o.setName("usuario").setRequired(true)),
+      o.setName("usuario")
+        .setDescription("Usuario a contratar")
+        .setRequired(true)),
 
   new SlashCommandBuilder()
     .setName("anuncio")
-    .setDescription("Enviar anuncio")
+    .setDescription("Enviar anuncio a la empresa")
     .addStringOption(o =>
-      o.setName("mensaje").setRequired(true)),
+      o.setName("mensaje")
+        .setDescription("Mensaje del anuncio")
+        .setRequired(true)),
 
   new SlashCommandBuilder()
     .setName("normas")
-    .setDescription("Mostrar normativa oficial")
+    .setDescription("Mostrar normativa oficial de la empresa")
 
 ].map(c => c.toJSON());
 
