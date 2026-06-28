@@ -12,8 +12,6 @@ const {
   ButtonStyle
 } = require("discord.js");
 
-const db = require("./database");
-
 // ---------------- CLIENT ----------------
 
 const client = new Client({
@@ -24,10 +22,10 @@ const client = new Client({
 
 const commands = [
 
-  // 💰 PAGO
+  // 💰 PAGO (SIN DB)
   new SlashCommandBuilder()
     .setName("pago")
-    .setDescription("Registrar un pago")
+    .setDescription("Registrar un pago (sin base de datos)")
     .addUserOption(o =>
       o.setName("empleado")
         .setDescription("Empleado")
@@ -41,10 +39,10 @@ const commands = [
         .setDescription("Cantidad")
         .setRequired(true)),
 
-  // 📊 HISTORIAL
+  // 📊 HISTORIAL (SIMULADO)
   new SlashCommandBuilder()
     .setName("historial")
-    .setDescription("Ver últimos pagos"),
+    .setDescription("Ver historial (temporal)"),
 
   // 🧑‍💼 CONTRATAR
   new SlashCommandBuilder()
@@ -52,21 +50,21 @@ const commands = [
     .setDescription("Contratar empleado")
     .addUserOption(o =>
       o.setName("usuario")
-        .setDescription("Usuario a contratar")
+        .setDescription("Usuario")
         .setRequired(true)),
 
   // 📣 ANUNCIO
   new SlashCommandBuilder()
     .setName("anuncio")
-    .setDescription("Enviar anuncio de empresa")
+    .setDescription("Enviar anuncio")
     .addStringOption(o =>
       o.setName("mensaje")
-        .setDescription("Mensaje del anuncio")
+        .setDescription("Mensaje")
         .setRequired(true))
 
 ].map(c => c.toJSON());
 
-// ---------------- REGISTRAR COMANDOS ----------------
+// ---------------- REGISTRO COMANDOS ----------------
 
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
@@ -102,19 +100,13 @@ client.on("interactionCreate", async interaction => {
     const servicio = interaction.options.getString("servicio");
     const cantidad = interaction.options.getString("cantidad");
 
-    // GUARDAR EN DB
-    db.run(
-      "INSERT INTO pagos (empleado, servicio, cantidad, estado) VALUES (?, ?, ?, ?)",
-      [empleado.tag, servicio, cantidad, "Pendiente"]
-    );
-
     const embed = new EmbedBuilder()
-      .setTitle("💰 NUEVO PAGO")
+      .setTitle("💰 NUEVO PAGO (SIN BASE DE DATOS)")
       .addFields(
         { name: "Empleado", value: `${empleado}` },
         { name: "Servicio", value: servicio },
         { name: "Cantidad", value: cantidad },
-        { name: "Estado", value: "🟡 Pendiente" }
+        { name: "Estado", value: "🟡 Pendiente (temporal)" }
       )
       .setColor("Yellow");
 
@@ -163,23 +155,12 @@ client.on("interactionCreate", async interaction => {
     });
   }
 
-  // ================= HISTORIAL =================
+  // ================= HISTORIAL (FAKE) =================
   if (interaction.isChatInputCommand() && interaction.commandName === "historial") {
 
-    db.all("SELECT * FROM pagos ORDER BY id DESC LIMIT 10", (err, rows) => {
-
-      if (!rows || rows.length === 0) {
-        return interaction.reply("No hay pagos registrados.");
-      }
-
-      const texto = rows.map(p =>
-        `👤 ${p.empleado} | 💰 ${p.cantidad} | 📌 ${p.estado} | 🕒 ${p.fecha}`
-      ).join("\n");
-
-      interaction.reply({
-        content: "📊 HISTORIAL DE PAGOS:\n\n" + texto,
-        ephemeral: true
-      });
+    interaction.reply({
+      content: "📊 No hay base de datos activa.\nLos pagos solo son temporales en memoria del mensaje.",
+      ephemeral: true
     });
   }
 
