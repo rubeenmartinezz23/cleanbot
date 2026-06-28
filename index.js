@@ -51,6 +51,22 @@ let lastSent = "";
 const commands = [
 
   new SlashCommandBuilder()
+    .setName("pago")
+    .setDescription("Registrar pago")
+    .addUserOption(o =>
+      o.setName("empleado")
+        .setDescription("Empleado")
+        .setRequired(true))
+    .addStringOption(o =>
+      o.setName("servicio")
+        .setDescription("Servicio")
+        .setRequired(true))
+    .addStringOption(o =>
+      o.setName("cantidad")
+        .setDescription("Cantidad")
+        .setRequired(true)),
+  
+  new SlashCommandBuilder()
     .setName("contratar")
     .setDescription("Contratar empleado")
     .addUserOption(o =>
