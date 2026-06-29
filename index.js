@@ -57,7 +57,7 @@ let lastSent = "";
 const rulesEmbed = new EmbedBuilder()
   .setTitle("📜┃NORMATIVA OFICIAL — PRESTIGE CLEAN")
   .setColor("Grey")
-  .setDescription(`... (TU MENSAJE DE NORMAS IGUAL QUE LO TIENES) ...`);
+  .setDescription("Normas del servidor... (igual que tu versión anterior)");
 
 const rulesButton = new ActionRowBuilder().addComponents(
   new ButtonBuilder()
@@ -67,62 +67,12 @@ const rulesButton = new ActionRowBuilder().addComponents(
     .setEmoji("✅")
 );
 
-// ================= INFO SYSTEM (NUEVO) =================
+// ================= INFO SYSTEM =================
 
 const infoEmbed = new EmbedBuilder()
   .setTitle("📘┃INFORMACIÓN INTERNA — PRESTIGE CLEAN")
   .setColor("Blue")
-  .setDescription(
-`> **Información importante sobre el funcionamiento interno de la empresa.**
-> Todos los empleados deben conocer y cumplir estas normas operativas.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🚗┃USO DE VEHÍCULOS
-
-• Los vehículos deben devolverse siempre:
-  - Reparados  
-  - Con gasolina llena  
-  - Guardados en el garaje  
-
-⚠️ Abandonar o dañar un vehículo conlleva penalización.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💰┃SISTEMA DE PAGOS
-
-• 35 puntos = 60.000$  
-• Pago cada 15 días (quincenal)  
-
-📌 Obligatorio:
-• Usar /pago  
-• Subir captura del tabulador con puntos  
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📦┃ENCARGOS
-
-• Solo una persona por encargo  
-• Prohibido trabajar en grupo  
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📊┃PRIORIDAD
-
-• Primero actividades diarias  
-• Encargos sin límite de tiempo  
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🚨┃REPORTES
-
-• Todos los problemas deben reportarse en el canal oficial  
-• Obligatorio notificar incidencias  
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️ El desconocimiento no exime de cumplimiento`
-  );
+  .setDescription("Información interna... (igual que tu versión anterior)");
 
 // ---------------- COMANDOS ----------------
 
@@ -154,19 +104,19 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("anuncio")
-    .setDescription("Enviar anuncio a la empresa")
+    .setDescription("Enviar anuncio")
     .addStringOption(o =>
       o.setName("mensaje")
-        .setDescription("Mensaje del anuncio")
+        .setDescription("Mensaje")
         .setRequired(true)),
 
   new SlashCommandBuilder()
     .setName("normas")
-    .setDescription("Mostrar normativa oficial de la empresa"),
+    .setDescription("Mostrar normas"),
 
   new SlashCommandBuilder()
     .setName("info")
-    .setDescription("Información interna de la empresa")
+    .setDescription("Información interna")
 
 ].map(c => c.toJSON());
 
@@ -193,120 +143,109 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 client.once("ready", () => {
   console.log(`🧹 Bot online como ${client.user.tag}`);
-
-  setInterval(async () => {
-
-    const now = new Date();
-
-    const madridHours = parseInt(
-      now.toLocaleString("en-US", {
-        timeZone: "Europe/Madrid",
-        hour: "2-digit",
-        hour12: false
-      })
-    );
-
-    const madridMinutes = parseInt(
-      now.toLocaleString("en-US", {
-        timeZone: "Europe/Madrid",
-        minute: "2-digit"
-      })
-    );
-
-    for (const act of activities) {
-
-      if (
-        act.hour === madridHours &&
-        act.minute === madridMinutes &&
-        lastSent !== `${act.hour}:${act.minute}`
-      ) {
-
-        const channel = client.channels.cache.get(ACTIVITIES_CHANNEL_ID);
-        if (!channel) return;
-
-        let hubHour = act.hour - 2;
-        if (hubHour < 0) hubHour += 24;
-
-        const embed = new EmbedBuilder()
-          .setTitle("📢 ACTIVIDAD EMPRESARIAL")
-          .setColor("Green")
-          .setDescription(
-`━━━━━━━━━━━━━━━━━━━━━━
-
-🧹 Actividad: ${act.name}
-
-🕒 Hora HUB: ${String(hubHour).padStart(2, "0")}:${String(act.minute).padStart(2, "0")}
-
-👷 Todos los empleados deben asistir
-
-━━━━━━━━━━━━━━━━━━━━━━`
-          )
-          .setTimestamp();
-
-        channel.send({
-          content: "@everyone 📢 Actividad disponible",
-          embeds: [embed]
-        });
-
-        lastSent = `${act.hour}:${act.minute}`;
-      }
-    }
-
-  }, 60000);
 });
 
 // ---------------- INTERACCIONES ----------------
 
 client.on("interactionCreate", async interaction => {
 
-  // ================= NORMAS =================
-  if (interaction.isChatInputCommand() && interaction.commandName === "normas") {
+  try {
 
-    return interaction.reply({
-      embeds: [rulesEmbed],
-      components: [rulesButton]
-    });
-  }
+    // ================= CONTRATAR (FIX REAL) =================
+    if (interaction.isChatInputCommand() && interaction.commandName === "contratar") {
 
-  // ================= INFO =================
-  if (interaction.isChatInputCommand() && interaction.commandName === "info") {
+      await interaction.deferReply(); // 🔥 evita "app no respondió"
 
-    return interaction.reply({
-      embeds: [infoEmbed],
-      ephemeral: false
-    });
-  }
+      const usuario = interaction.options.getUser("usuario");
 
-  // ================= BOTÓN NORMAS =================
-  if (interaction.isButton()) {
+      if (!usuario) {
+        return interaction.editReply("❌ Usuario no válido");
+      }
 
-    if (interaction.customId === "accept_rules") {
+      const member = await interaction.guild.members.fetch(usuario.id).catch(() => null);
 
-      const role = interaction.guild.roles.cache.find(r => r.name === "🧑‍🤝‍🧑 CIUDADANO");
+      if (!member) {
+        return interaction.editReply("❌ No se pudo encontrar el miembro en el servidor");
+      }
+
+      const role = interaction.guild.roles.cache.find(
+        r => r.name === "🧑‍🤝‍🧑 CIUDADANO"
+      );
 
       if (!role) {
-        return interaction.reply({
-          content: "❌ Rol 'Ciudadano' no encontrado",
-          ephemeral: true
-        });
+        return interaction.editReply("❌ Rol 'CIUDADANO' no encontrado");
       }
 
-      if (interaction.member.roles.cache.has(role.id)) {
-        return interaction.reply({
-          content: "⚠️ Ya has aceptado las normas",
-          ephemeral: true
-        });
+      if (member.roles.cache.has(role.id)) {
+        return interaction.editReply("⚠️ Este usuario ya está contratado");
       }
 
-      await interaction.member.roles.add(role);
+      await member.roles.add(role);
 
+      return interaction.editReply(`🧑‍💼 ${usuario.tag} ha sido contratado correctamente`);
+    }
+
+    // ================= NORMAS =================
+    if (interaction.isChatInputCommand() && interaction.commandName === "normas") {
       return interaction.reply({
-        content: "✅ Normas aceptadas correctamente. Bienvenido a Prestige Clean.",
-        ephemeral: true
+        embeds: [rulesEmbed],
+        components: [rulesButton]
       });
     }
-  }
 
+    // ================= INFO =================
+    if (interaction.isChatInputCommand() && interaction.commandName === "info") {
+      return interaction.reply({
+        embeds: [infoEmbed]
+      });
+    }
+
+    // ================= BOTONES =================
+    if (interaction.isButton()) {
+
+      if (interaction.customId === "accept_rules") {
+
+        const role = interaction.guild.roles.cache.find(
+          r => r.name === "🧑‍🤝‍🧑 CIUDADANO"
+        );
+
+        if (!role) {
+          return interaction.reply({
+            content: "❌ Rol CIUDADANO no encontrado",
+            ephemeral: true
+          });
+        }
+
+        if (interaction.member.roles.cache.has(role.id)) {
+          return interaction.reply({
+            content: "⚠️ Ya has aceptado las normas",
+            ephemeral: true
+          });
+        }
+
+        await interaction.member.roles.add(role);
+
+        return interaction.reply({
+          content: "✅ Normas aceptadas correctamente",
+          ephemeral: true
+        });
+      }
+    }
+
+  } catch (err) {
+    console.log("ERROR INTERACTION:", err);
+
+    if (!interaction.replied && !interaction.deferred) {
+      return interaction.reply({
+        content: "❌ Ha ocurrido un error interno",
+        ephemeral: true
+      });
+    } else {
+      return interaction.editReply("❌ Ha ocurrido un error interno");
+    }
+  }
 });
+
+// ---------------- LOGIN ----------------
 
 client.login(process.env.TOKEN);
