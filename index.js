@@ -304,7 +304,7 @@ client.on("interactionCreate", async interaction => {
 
     if (interaction.customId === "accept_rules") {
 
-      const role = interaction.guild.roles.cache.find(r => r.name === "Ciudadano");
+      const role = interaction.guild.roles.cache.find(r => r.name === "🧑‍🤝‍🧑 CIUDADANO");
 
       if (!role) {
         return interaction.reply({
