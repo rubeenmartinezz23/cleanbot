@@ -52,27 +52,19 @@ const activities = [
 
 let lastSent = "";
 
-// ================= NORMAS SYSTEM =================
+// ================= NORMAS =================
 
 const rulesEmbed = new EmbedBuilder()
   .setTitle("📜┃NORMATIVA OFICIAL — PRESTIGE CLEAN")
   .setColor("Grey")
-  .setDescription("Normas del servidor... (igual que tu versión anterior)");
+  .setDescription("Normas del servidor...");
 
-const rulesButton = new ActionRowBuilder().addComponents(
-  new ButtonBuilder()
-    .setCustomId("accept_rules")
-    .setLabel("Aceptar normas")
-    .setStyle(ButtonStyle.Success)
-    .setEmoji("✅")
-);
-
-// ================= INFO SYSTEM =================
+// ================= INFO =================
 
 const infoEmbed = new EmbedBuilder()
   .setTitle("📘┃INFORMACIÓN INTERNA — PRESTIGE CLEAN")
   .setColor("Blue")
-  .setDescription("Información interna... (igual que tu versión anterior)");
+  .setDescription("Información interna...");
 
 // ---------------- COMANDOS ----------------
 
@@ -143,6 +135,66 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 client.once("ready", () => {
   console.log(`🧹 Bot online como ${client.user.tag}`);
+
+  setInterval(async () => {
+
+    const now = new Date();
+
+    const madridHours = parseInt(
+      now.toLocaleString("en-US", {
+        timeZone: "Europe/Madrid",
+        hour: "2-digit",
+        hour12: false
+      })
+    );
+
+    const madridMinutes = parseInt(
+      now.toLocaleString("en-US", {
+        timeZone: "Europe/Madrid",
+        minute: "2-digit"
+      })
+    );
+
+    for (const act of activities) {
+
+      if (
+        act.hour === madridHours &&
+        act.minute === madridMinutes &&
+        lastSent !== `${act.hour}:${act.minute}`
+      ) {
+
+        const channel = client.channels.cache.get(ACTIVITIES_CHANNEL_ID);
+        if (!channel) return;
+
+        let hubHour = act.hour - 2;
+        if (hubHour < 0) hubHour += 24;
+
+        const embed = new EmbedBuilder()
+          .setTitle("📢 ACTIVIDAD EMPRESARIAL")
+          .setColor("Green")
+          .setDescription(
+`━━━━━━━━━━━━━━━━━━━━━━
+
+🧹 Actividad: ${act.name}
+
+🕒 Hora HUB: ${String(hubHour).padStart(2, "0")}:${String(act.minute).padStart(2, "0")}
+
+👷 Todos los empleados deben asistir
+
+━━━━━━━━━━━━━━━━━━━━━━`
+          )
+          .setTimestamp();
+
+        channel.send({
+          content: "@everyone 📢 Actividad disponible",
+          embeds: [embed]
+        });
+
+        lastSent = `${act.hour}:${act.minute}`;
+      }
+    }
+
+  }, 60000);
 });
 
 // ---------------- INTERACCIONES ----------------
@@ -151,45 +203,49 @@ client.on("interactionCreate", async interaction => {
 
   try {
 
-    // ================= CONTRATAR (FIX REAL) =================
+    // ================= CONTRATAR (FIX + RECLUTA + CIUDADANO) =================
     if (interaction.isChatInputCommand() && interaction.commandName === "contratar") {
 
-      await interaction.deferReply(); // 🔥 evita "app no respondió"
+      await interaction.deferReply();
 
       const usuario = interaction.options.getUser("usuario");
-
-      if (!usuario) {
-        return interaction.editReply("❌ Usuario no válido");
-      }
-
       const member = await interaction.guild.members.fetch(usuario.id).catch(() => null);
 
       if (!member) {
-        return interaction.editReply("❌ No se pudo encontrar el miembro en el servidor");
+        return interaction.editReply("❌ No se pudo encontrar el usuario");
       }
 
-      const role = interaction.guild.roles.cache.find(
+      const reclutaRole = interaction.guild.roles.cache.find(
+        r => r.name === "🆕 RECLUTA"
+      );
+
+      const ciudadanoRole = interaction.guild.roles.cache.find(
         r => r.name === "🧑‍🤝‍🧑 CIUDADANO"
       );
 
-      if (!role) {
-        return interaction.editReply("❌ Rol 'CIUDADANO' no encontrado");
+      if (!reclutaRole) {
+        return interaction.editReply("❌ Rol 🆕 RECLUTA no encontrado");
       }
 
-      if (member.roles.cache.has(role.id)) {
-        return interaction.editReply("⚠️ Este usuario ya está contratado");
+      if (member.roles.cache.has(reclutaRole.id)) {
+        return interaction.editReply("⚠️ Este usuario ya es RECLUTA");
       }
 
-      await member.roles.add(role);
+      await member.roles.add(reclutaRole);
 
-      return interaction.editReply(`🧑‍💼 ${usuario.tag} ha sido contratado correctamente`);
+      if (ciudadanoRole && !member.roles.cache.has(ciudadanoRole.id)) {
+        await member.roles.add(ciudadanoRole);
+      }
+
+      return interaction.editReply(
+        `🧑‍💼 ${usuario.tag} ha sido contratado como 🆕 RECLUTA`
+      );
     }
 
     // ================= NORMAS =================
     if (interaction.isChatInputCommand() && interaction.commandName === "normas") {
       return interaction.reply({
-        embeds: [rulesEmbed],
-        components: [rulesButton]
+        embeds: [rulesEmbed]
       });
     }
 
@@ -200,52 +256,18 @@ client.on("interactionCreate", async interaction => {
       });
     }
 
-    // ================= BOTONES =================
-    if (interaction.isButton()) {
-
-      if (interaction.customId === "accept_rules") {
-
-        const role = interaction.guild.roles.cache.find(
-          r => r.name === "🧑‍🤝‍🧑 CIUDADANO"
-        );
-
-        if (!role) {
-          return interaction.reply({
-            content: "❌ Rol CIUDADANO no encontrado",
-            ephemeral: true
-          });
-        }
-
-        if (interaction.member.roles.cache.has(role.id)) {
-          return interaction.reply({
-            content: "⚠️ Ya has aceptado las normas",
-            ephemeral: true
-          });
-        }
-
-        await interaction.member.roles.add(role);
-
-        return interaction.reply({
-          content: "✅ Normas aceptadas correctamente",
-          ephemeral: true
-        });
-      }
-    }
-
   } catch (err) {
-    console.log("ERROR INTERACTION:", err);
+    console.log(err);
 
     if (!interaction.replied && !interaction.deferred) {
       return interaction.reply({
-        content: "❌ Ha ocurrido un error interno",
+        content: "❌ Error interno",
         ephemeral: true
       });
     } else {
-      return interaction.editReply("❌ Ha ocurrido un error interno");
+      return interaction.editReply("❌ Error interno");
     }
   }
 });
-
-// ---------------- LOGIN ----------------
 
 client.login(process.env.TOKEN);
